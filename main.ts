@@ -1,9 +1,9 @@
-// makefun-news-image-20261120 — entrypoint (Node 22, standard library only).
+// makefun-news-image-20261120 — v2 entrypoint (Node 22, standard library only).
 //
 // The image is the product: entry.png beside this file is copied byte-for-byte
 // to $MAKEFUN_OUTPUT_DIR/entry.png (or /output/entry.png inside the grader).
-// No network, no randomness, no timestamps — the two grader runs must produce
-// identical bytes, which a plain copy guarantees by construction.
+// No network, no randomness, no timestamps — a plain copy is deterministic
+// by construction, so the two grader runs produce identical bytes.
 
 import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -32,9 +32,13 @@ if (width > 1024 || height > 1024) {
 mkdirSync(outDir, { recursive: true });
 copyFileSync(source, target);
 
-const written = readFileSync(target);
-if (!written.equals(bytes)) {
-  throw new Error("copied entry.png differs from the source file");
+// Read-back check: the written file must be byte-identical to the repo
+// copy. If it is not, the run is not reproducible — fail loudly.
+const back = readFileSync(target);
+if (!back.equals(bytes)) {
+  throw new Error("read-back mismatch: output differs from repo entry.png");
 }
-const sha = createHash("sha256").update(written).digest("hex");
-console.log(`wrote ${target} (${written.length} bytes, ${width}x${height}, sha256 ${sha})`);
+console.log("read-back check: output is byte-identical to repo entry.png");
+
+const sha = createHash("sha256").update(bytes).digest("hex");
+console.log(`wrote ${target} (${bytes.length} bytes, ${width}x${height}, sha256 ${sha})`);
